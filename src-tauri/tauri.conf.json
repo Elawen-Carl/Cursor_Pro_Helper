@@ -1,0 +1,64 @@
+{
+    "$schema": "https://schema.tauri.app/config/2.0.0-rc",
+    "build": {
+        "beforeDevCommand": {
+            "script": "pnpm dev",
+            "cwd": "./",
+            "shell": true
+        },
+        "beforeBuildCommand": {
+            "script": "pnpm build",
+            "cwd": "./",
+            "shell": true
+        },
+        "frontendDist": "../dist",
+        "devUrl": "http://localhost:5173"
+    },
+    "identifier": "com.cursorprohelper.app",
+    "productName": "Cursor Pro Helper",
+    "version": "0.1.0",
+    "app": {
+        "security": {
+            "csp": null
+        },
+        "withGlobalTauri": true,
+        "windows": [
+            {
+                "fullscreen": false,
+                "height": 720,
+                "resizable": true,
+                "title": "Cursor Pro Helper",
+                "width": 800,
+                "center": true,
+                "decorations": true
+            }
+        ]
+    },
+    "bundle": {
+        "active": true,
+        "category": "DeveloperTool",
+        "copyright": "",
+        "externalBin": [],
+        "icon": [
+            "icons/favicon-32x32.png",
+            "icons/android-chrome-512x512.png",
+            "icons/android-chrome-192x192.png",
+            "icons/favicon.ico",
+            "icons/favicon-16x16.png"
+        ],
+        "targets": "all",
+        "windows": {
+            "webviewInstallMode": {
+                "type": "downloadBootstrapper"
+            },
+            "digestAlgorithm": "sha256",
+            "timestampUrl": "",
+            "wix": {
+                "template": null
+            },
+            "nsis": {
+                "template": null
+            }
+        }
+    }
+}
