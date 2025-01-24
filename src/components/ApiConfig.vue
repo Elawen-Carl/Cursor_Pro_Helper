@@ -238,4 +238,27 @@ onMounted(async () => {
 :deep(.n-code-line) {
     padding: 0 4px;
 }
+
+:deep(.n-card-header__main) {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+:deep(.n-card) {
+    --n-padding-top: 0;
+    --n-padding-bottom: 0;
+    --n-padding-left: 0;
+    --n-padding-right: 0;
+}
+
+
+:deep(.n-form-item) {
+    margin-bottom: 8px;
+}
+
+:deep(.n-form-item-label) {
+    font-size: 12px;
+    height: 24px;
+    line-height: 24px;
+}
 </style>

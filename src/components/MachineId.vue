@@ -1,7 +1,6 @@
 <template>
     <n-card class="machine-id" :bordered="false" size="small">
         <div class="content-wrapper">
-
             <div class="progress-section">
                 <div class="section-title">
                     <n-icon size="14"><info-outlined /></n-icon>
@@ -255,7 +254,6 @@ onMounted(async () => {
 
 <style scoped>
 .machine-id {
-    --card-padding: 16px;
     --section-gap: 12px;
     --border-radius: 6px;
     max-width: 800px;
@@ -265,7 +263,6 @@ onMounted(async () => {
 .content-wrapper {
     display: flex;
     flex-direction: column;
-    gap: var(--section-gap);
 }
 
 .config-section,
@@ -273,23 +270,23 @@ onMounted(async () => {
 .progress-section {
     background-color: v-bind('themeVars.cardColor');
     border-radius: var(--border-radius);
-    padding: 8px;
+    padding-top: 12px;
 }
 
 .section-title {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 8px;
     color: v-bind('themeVars.textColor2');
+    font-weight: 500;
 }
 
 .id-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    padding: 0 4px;
+    gap: 12px;
 }
 
 .id-item {
@@ -299,14 +296,18 @@ onMounted(async () => {
 }
 
 .id-label {
-    font-size: 11px;
+    font-size: 12px;
     color: v-bind('themeVars.textColor3');
     padding-left: 2px;
 }
 
-.message-container {
+.progress-section {
+    background-color: v-bind('themeVars.cardColor');
+    border-radius: var(--border-radius);
+}
+
+:deep(.n-scrollbar) {
     height: 120px;
-    padding: 0;
     border: 1px solid v-bind('themeVars.borderColor');
     border-radius: 3px;
 }
@@ -317,8 +318,8 @@ onMounted(async () => {
 
 .message-item {
     display: block;
-    padding: 3px 0;
-    line-height: 1.5;
+    padding: 2px 0;
+    line-height: 1.4;
     font-size: 13px;
 }
 
@@ -342,9 +343,6 @@ onMounted(async () => {
     --n-font-size: 12px;
 }
 
-:deep(.n-card) {
-    --n-padding: var(--card-padding);
-}
 
 :deep(.n-button) {
     --n-height: 28px;
@@ -369,5 +367,16 @@ onMounted(async () => {
 
 :deep(.n-scrollbar-content) {
     padding-right: 6px;
+}
+
+:deep(.n-card) {
+    --n-padding-top: 0;
+    --n-padding-bottom: 0;
+    --n-padding-left: 0;
+    --n-padding-right: 0;
+}
+
+:deep(.n-card__content) {
+    padding: 0;
 }
 </style>

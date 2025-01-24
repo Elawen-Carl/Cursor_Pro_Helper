@@ -89,7 +89,7 @@ body {
 }
 
 .content {
-    padding: 20px;
+    padding: 10px;
     background-color: var(--primary-bg);
 }
 
