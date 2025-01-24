@@ -1,3 +1,4 @@
+use crate::events::ProgressEmitter;
 use rusqlite::{Connection, Result as SqliteResult};
 use serde::Deserialize;
 use std::fs;
@@ -5,8 +6,6 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use tracing::{error, info};
-use crate::events::ProgressEmitter;
-
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]

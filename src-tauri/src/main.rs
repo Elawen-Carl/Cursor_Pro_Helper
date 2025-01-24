@@ -4,8 +4,8 @@
     windows_subsystem = "windows"
 )]
 
-use cursor_pro_helper::commands::*;
 use cursor_pro_helper::auth_manager;
+use cursor_pro_helper::commands::*;
 use cursor_pro_helper::events::TauriProgressEmitter;
 
 #[tauri::command]

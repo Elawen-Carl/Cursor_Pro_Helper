@@ -1,6 +1,6 @@
+use crate::api_config::{ApiConfig, ApiConfigManager};
 use crate::events::TauriProgressEmitter;
 use crate::machine::MachineService;
-use crate::api_config::{ApiConfig, ApiConfigManager};
 use serde::{Deserialize, Serialize};
 use tauri::command;
 use tracing::{error, info};

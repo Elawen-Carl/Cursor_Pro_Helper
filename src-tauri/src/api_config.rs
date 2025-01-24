@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tracing::{ info};
+use tracing::info;
 
 const DEFAULT_API_URL: &str = "https://cursor-account-api.vercel.app/account/random";
 
@@ -87,7 +87,7 @@ mod tests {
     fn test_api_config_manager() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("api_config.json");
-        
+
         let manager = ApiConfigManager {
             config_path: config_path.clone(),
         };
@@ -110,4 +110,4 @@ mod tests {
         let reset_config = manager.reset().unwrap();
         assert_eq!(reset_config.url, DEFAULT_API_URL);
     }
-} 
+}

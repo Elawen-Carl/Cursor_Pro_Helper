@@ -42,4 +42,5 @@ winreg = "0.50"
 
 [dev-dependencies]
 rstest = "0.18"
-tokio-test = "0.4" 
+tokio-test = "0.4"
+tempfile = "3.8" 
