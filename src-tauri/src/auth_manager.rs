@@ -5,6 +5,8 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use tracing::{error, info};
+use crate::events::ProgressEmitter;
+
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -25,10 +27,42 @@ struct ApiResponse {
     message: String,
 }
 
-pub async fn reset_auth() -> bool {
+/// 删除账号
+pub async fn delete_account(email: &str, progress_emitter: &dyn ProgressEmitter) -> bool {
+    info!("Starting account deletion process for email: {}", email);
+    progress_emitter.emit_progress(&format!("开始删除账号: {}", email));
+
+    let client = reqwest::Client::new();
+    let url = format!("https://cursor-account-api.vercel.app/account/{}", email);
+
+    match client.delete(&url).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                info!("Successfully deleted account for email: {}", email);
+                progress_emitter.emit_progress("账号删除成功");
+                true
+            } else {
+                let error_msg = format!("删除账号失败. 状态码: {}", response.status());
+                error!("{}", error_msg);
+                progress_emitter.emit_progress(&error_msg);
+                false
+            }
+        }
+        Err(e) => {
+            let error_msg = format!("发送删除请求失败: {}", e);
+            error!("{}", error_msg);
+            progress_emitter.emit_progress(&error_msg);
+            false
+        }
+    }
+}
+
+pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     info!("Starting auth reset process");
+    progress_emitter.emit_progress("开始重置认证信息...");
 
     // 获取随机账号
+    progress_emitter.emit_progress("正在获取随机账号...");
     let client = reqwest::Client::new();
     let response = match client
         .get("https://cursor-account-api.vercel.app/account/random")
@@ -37,7 +71,9 @@ pub async fn reset_auth() -> bool {
     {
         Ok(resp) => resp,
         Err(e) => {
-            error!("Failed to fetch random account: {}", e);
+            let error_msg = format!("获取随机账号失败: {}", e);
+            error!("{}", error_msg);
+            progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
@@ -46,7 +82,9 @@ pub async fn reset_auth() -> bool {
     let response_text = match response.text().await {
         Ok(text) => text,
         Err(e) => {
-            error!("Failed to get response text: {}", e);
+            let error_msg = format!("获取响应内容失败: {}", e);
+            error!("{}", error_msg);
+            progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
@@ -56,22 +94,49 @@ pub async fn reset_auth() -> bool {
     let api_response: ApiResponse = match serde_json::from_str(&response_text) {
         Ok(data) => data,
         Err(e) => {
-            error!("Failed to parse API response: {}", e);
+            let error_msg = format!("解析API响应失败: {}", e);
+            error!("{}", error_msg);
+            progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
 
     if !api_response.success {
-        error!("API returned failure: {}", api_response.message);
+        let error_msg = format!("API返回失败: {}", api_response.message);
+        error!("{}", error_msg);
+        progress_emitter.emit_progress(&error_msg);
         return false;
     }
 
+    progress_emitter.emit_progress("成功获取随机账号");
+
     // 更新认证信息
-    update_auth(
-        Some(api_response.data.email),
+    progress_emitter.emit_progress("开始更新认证信息...");
+    let email = api_response.data.email.clone();
+    let success = update_auth(
+        Some(email.clone()),
         Some(api_response.data.token.clone()),
         Some(api_response.data.token),
-    )
+    );
+
+    if !success {
+        progress_emitter.emit_progress("更新认证信息失败");
+        return false;
+    }
+
+    progress_emitter.emit_progress("认证信息更新成功");
+
+    // 如果更新成功，删除旧账号
+    if success {
+        if !delete_account(&email, progress_emitter).await {
+            error!("Failed to delete account after reset");
+            progress_emitter.emit_progress("删除旧账号失败，但认证信息已更新");
+            // 即使删除失败，我们仍然继续，因为认证信息已经更新
+        }
+    }
+
+    progress_emitter.emit_progress("重置认证信息完成");
+    success
 }
 
 pub fn update_auth(

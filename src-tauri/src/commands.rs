@@ -1,5 +1,6 @@
 use crate::events::TauriProgressEmitter;
 use crate::machine::MachineService;
+use crate::api_config::{ApiConfig, ApiConfigManager};
 use serde::{Deserialize, Serialize};
 use tauri::command;
 use tracing::{error, info};
@@ -107,4 +108,23 @@ pub async fn update_machine_id() -> Result<(), String> {
         error!("更新机器 ID 失败: {}", e);
         e.to_string()
     })
+}
+
+#[tauri::command]
+pub fn get_api_config() -> Result<ApiConfig, String> {
+    let manager = ApiConfigManager::new().map_err(|e| e.to_string())?;
+    manager.load().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_api_config(url: String) -> Result<(), String> {
+    let manager = ApiConfigManager::new().map_err(|e| e.to_string())?;
+    let config = ApiConfig { url };
+    manager.save(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn reset_api_config() -> Result<ApiConfig, String> {
+    let manager = ApiConfigManager::new().map_err(|e| e.to_string())?;
+    manager.reset().map_err(|e| e.to_string())
 }

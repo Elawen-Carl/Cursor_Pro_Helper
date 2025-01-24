@@ -40,6 +40,11 @@
   <img src="assets/yijianchongzhi.gif" alt="重置演示" width="600">
 </div>
 
+## 👥 社区
+
+### 交流群组
+- [Telegram](https://t.me/+S02jM99kuhUwM2Vl)
+
 ## ✨ 核心特性
 
 ### 🚀 高效重置
@@ -252,11 +257,7 @@ cargo clippy && pnpm lint
 3. 提交代码
 4. 创建 Pull Request
 
-## 👥 社区
 
-### 交流群组
-- [Discord](https://discord.gg/your-discord-invite)
-- [Telegram](https://t.me/your-telegram-group)
 
 ### 贡献者
 <a href="https://github.com/Elawen-Carl/Cursor_Pro_Helper/graphs/contributors">

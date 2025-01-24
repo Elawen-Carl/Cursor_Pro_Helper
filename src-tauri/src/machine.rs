@@ -598,7 +598,7 @@ impl MachineService {
 
         // 重置认证信息
         self.emit_progress("开始重置认证信息...");
-        if !auth_manager::reset_auth().await {
+        if !auth_manager::reset_auth(&*self.progress_emitter).await {
             return Err(anyhow::anyhow!("重置认证信息失败"));
         }
         self.emit_progress("认证信息重置成功");

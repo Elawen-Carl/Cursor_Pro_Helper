@@ -12,6 +12,7 @@
                         </div>
                     </n-layout-header>
                     <n-layout-content class="content">
+                        <ApiConfig />
                         <MachineId />
                     </n-layout-content>
                 </n-layout>
@@ -25,6 +26,7 @@ import { ref, computed } from '@vue/runtime-core'
 import type { GlobalTheme } from 'naive-ui'
 import { darkTheme, NConfigProvider, NLayout, NLayoutHeader, NLayoutContent, NButton, NMessageProvider } from 'naive-ui'
 import MachineId from './components/MachineId.vue'
+import ApiConfig from './components/ApiConfig.vue'
 
 const isDark = ref<boolean>(false)
 const currentTheme = computed<GlobalTheme | null>(() => isDark.value ? darkTheme : null)

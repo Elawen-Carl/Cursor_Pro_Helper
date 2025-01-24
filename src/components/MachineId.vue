@@ -1,67 +1,78 @@
 <template>
-    <n-card class="machine-id" :bordered="false">
+    <n-card class="machine-id" :bordered="false" size="small">
         <div class="content-wrapper">
-            <div class="config-section">
-                <div class="section-title">
-                    <n-icon><folder-outlined /></n-icon>
-                    配置文件路径
-                </div>
-                <n-input readonly :value="configPath" placeholder="配置文件路径" :border="false" class="config-input" />
-            </div>
-
-            <div class="id-section">
-                <div class="section-title">
-                    <n-icon><key-outlined /></n-icon>
-                    当前 ID
-                </div>
-                <div class="id-grid">
-                    <div class="id-item" v-for="(id, key) in ids" :key="key">
-                        <div class="id-label">{{ labels[key] }}</div>
-                        <n-input readonly :value="id" :placeholder="labels[key]" :border="false" class="id-input" />
-                    </div>
-                </div>
-            </div>
 
             <div class="progress-section">
                 <div class="section-title">
-                    <n-icon><info-outlined /></n-icon>
+                    <n-icon size="14"><info-outlined /></n-icon>
                     进度消息
                 </div>
-                <div class="message-container">
-                    <div v-for="(msg, index) in progressMessages" :key="index" class="message-item"
-                        :class="{ 'latest-message': index === progressMessages.length - 1 }">
-                        {{ msg }}
+                <n-scrollbar ref="scrollbarRef" class="message-container" trigger="none">
+                    <div class="message-wrapper">
+                        <n-text v-for="(msg, index) in progressMessages" :key="index"
+                            :depth="index === progressMessages.length - 1 ? 1 : 3"
+                            :type="index === progressMessages.length - 1 ? 'primary' : undefined" class="message-item">
+                            {{ msg }}
+                        </n-text>
                     </div>
-                </div>
+                </n-scrollbar>
             </div>
 
             <div class="actions">
                 <div class="action-buttons">
-                    <n-button type="primary" @click="resetId" :loading="resetLoading" class="action-btn">
+                    <n-button type="primary" @click="resetId" :loading="resetLoading" class="action-btn" size="small">
                         <template #icon><reload-outlined /></template>
                         一键重置
                     </n-button>
-                    <n-button @click="modifyId" :loading="modifyLoading" :disabled="modifyLoading" class="action-btn">
+                    <n-button @click="modifyId" :loading="modifyLoading" :disabled="modifyLoading" class="action-btn"
+                        size="small">
                         <template #icon><edit-outlined /></template>
                         修改 ID
                     </n-button>
-                    <n-button @click="backup" :loading="backupLoading" :disabled="backupLoading" class="action-btn">
+                    <n-button @click="backup" :loading="backupLoading" :disabled="backupLoading" class="action-btn"
+                        size="small">
                         <template #icon><save-outlined /></template>
                         备份
                     </n-button>
-                    <n-button @click="restore" :loading="restoreLoading" :disabled="restoreLoading" class="action-btn">
+                    <n-button @click="restore" :loading="restoreLoading" :disabled="restoreLoading" class="action-btn"
+                        size="small">
                         <template #icon><rollback-outlined /></template>
                         还原
                     </n-button>
                 </div>
             </div>
+            <div class="config-section">
+                <div class="section-title">
+                    <n-icon size="14"><folder-outlined /></n-icon>
+                    配置文件路径
+                </div>
+                <n-input readonly :value="configPath" placeholder="配置文件路径" :border="false" class="config-input"
+                    size="small" />
+            </div>
+
+
+            <div class="id-section">
+                <div class="section-title">
+                    <n-icon size="14"><key-outlined /></n-icon>
+                    当前 ID
+                </div>
+                <div class="id-grid">
+                    <div class="id-item" v-for="(id, key) in ids" :key="key">
+                        <div class="id-label">{{ labels[key] }}</div>
+                        <n-input readonly :value="id" :placeholder="labels[key]" :border="false" class="id-input"
+                            size="small" />
+                    </div>
+                </div>
+            </div>
+
+
         </div>
     </n-card>
 </template>
 
 <script setup lang="ts">
 
-import { ref, onMounted, computed, type Ref, onUnmounted } from '@vue/runtime-core'
+import { ref, onMounted, computed, type Ref, onUnmounted, nextTick } from '@vue/runtime-core'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import {
@@ -69,6 +80,8 @@ import {
     NInput,
     NCard,
     NIcon,
+    NText,
+    NScrollbar,
     useMessage,
     useThemeVars
 } from 'naive-ui'
@@ -206,12 +219,22 @@ const restore = () => executeAction(
     '还原失败'
 )
 
+const scrollbarRef = ref<InstanceType<typeof NScrollbar> | null>(null)
+
+// 滚动到底部的函数
+const scrollToBottom = async () => {
+    await nextTick()
+    if (scrollbarRef.value) {
+        scrollbarRef.value.scrollTo({ top: 99999, behavior: 'smooth' })
+    }
+}
+
 // 监听进度事件
 onMounted(async () => {
     await getIds()
 
     // 监听进度事件
-    const unlistenFn = await listen<{ message: string }>('reset_progress', (event) => {
+    const unlistenFn = await listen<{ message: string }>('reset_progress', async (event) => {
         console.log('收到进度事件:', event)
         progressMessage.value = event.payload.message
         progressMessages.value.push(event.payload.message)
@@ -219,6 +242,8 @@ onMounted(async () => {
         if (progressMessages.value.length > 100) {
             progressMessages.value = progressMessages.value.slice(-100)
         }
+        // 自动滚动到底部
+        await scrollToBottom()
     })
 
     // 组件卸载时取消监听
@@ -230,9 +255,11 @@ onMounted(async () => {
 
 <style scoped>
 .machine-id {
-    --card-padding: 24px;
-    --section-gap: 20px;
-    --border-radius: 8px;
+    --card-padding: 16px;
+    --section-gap: 12px;
+    --border-radius: 6px;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .content-wrapper {
@@ -246,21 +273,23 @@ onMounted(async () => {
 .progress-section {
     background-color: v-bind('themeVars.cardColor');
     border-radius: var(--border-radius);
+    padding: 8px;
 }
 
 .section-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: v-bind('themeVars.textColor3');
-    margin-bottom: 12px;
+    gap: 6px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: v-bind('themeVars.textColor2');
 }
 
 .id-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 0 4px;
 }
 
 .id-item {
@@ -270,106 +299,75 @@ onMounted(async () => {
 }
 
 .id-label {
-    font-size: 12px;
+    font-size: 11px;
     color: v-bind('themeVars.textColor3');
-    padding-left: 4px;
+    padding-left: 2px;
+}
+
+.message-container {
+    height: 120px;
+    padding: 0;
+    border: 1px solid v-bind('themeVars.borderColor');
+    border-radius: 3px;
+}
+
+.message-wrapper {
+    padding: 6px 8px;
+}
+
+.message-item {
+    display: block;
+    padding: 3px 0;
+    line-height: 1.5;
+    font-size: 13px;
 }
 
 .actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: v-bind('themeVars.cardColor');
-    border-radius: var(--border-radius);
-    padding: 16px;
+    margin-top: 4px;
 }
 
 .action-buttons {
     display: flex;
-    gap: 12px;
+    gap: 8px;
 }
 
 .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-:deep(.n-card) {
-    background-color: v-bind('themeVars.bodyColor');
+    font-size: 12px;
+    padding: 0 12px;
+    height: 28px;
 }
 
 :deep(.n-input) {
-    background-color: v-bind('themeVars.inputColor');
+    --n-height: 28px;
+    --n-font-size: 12px;
 }
 
-:deep(.n-button:not(.n-button--primary)) {
-    background-color: v-bind('themeVars.buttonColor2');
-    border-color: v-bind('themeVars.buttonColor2');
-    color: v-bind('themeVars.textColor2');
+:deep(.n-card) {
+    --n-padding: var(--card-padding);
 }
 
-:deep(.n-button:not(.n-button--primary):hover) {
-    background-color: v-bind('themeVars.buttonColor2Hover');
-    border-color: v-bind('themeVars.buttonColor2Hover');
+:deep(.n-button) {
+    --n-height: 28px;
+    --n-font-size: 12px;
 }
 
-:deep(.n-input .n-input__input-el) {
-    cursor: default;
-    user-select: all;
+:deep(.n-scrollbar-rail) {
+    z-index: 1;
 }
 
-:deep(.n-checkbox) {
-    --n-text-color: v-bind('themeVars.textColor2');
+:deep(.n-scrollbar-rail.n-scrollbar-rail--vertical) {
+    right: 2px;
+    top: 4px;
+    bottom: 4px;
 }
 
-.progress-section {
-    max-height: 200px;
-    display: flex;
-    flex-direction: column;
+:deep(.n-scrollbar-rail.n-scrollbar-rail--horizontal) {
+    left: 4px;
+    right: 4px;
+    bottom: 2px;
 }
 
-.message-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-    background-color: v-bind('themeVars.inputColor');
-    border-radius: 4px;
-    max-height: 150px;
-}
-
-.message-item {
-    padding: 4px 8px;
-    font-size: 13px;
-    line-height: 1.4;
-    color: v-bind('themeVars.textColor2');
-    border-radius: 2px;
-}
-
-.message-item:not(:last-child) {
-    margin-bottom: 4px;
-}
-
-.latest-message {
-    color: v-bind('themeVars.textColor1');
-    background-color: v-bind('themeVars.primaryColorSuppl');
-}
-
-/* 自定义滚动条样式 */
-.message-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.message-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.message-container::-webkit-scrollbar-thumb {
-    background-color: v-bind('themeVars.scrollbarColor');
-    border-radius: 3px;
-}
-
-.message-container::-webkit-scrollbar-thumb:hover {
-    background-color: v-bind('themeVars.scrollbarColorHover');
+:deep(.n-scrollbar-content) {
+    padding-right: 6px;
 }
 </style>
