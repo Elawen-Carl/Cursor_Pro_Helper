@@ -126,12 +126,10 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     progress_emitter.emit_progress("认证信息更新成功");
 
     // 如果更新成功，删除旧账号
-    if success {
-        if !delete_account(&email, progress_emitter).await {
-            error!("Failed to delete account after reset");
-            progress_emitter.emit_progress("删除旧账号失败，但认证信息已更新");
-            // 即使删除失败，我们仍然继续，因为认证信息已经更新
-        }
+    if success && !delete_account(&email, progress_emitter).await {
+        error!("Failed to delete account after reset");
+        progress_emitter.emit_progress("删除旧账号失败，但认证信息已更新");
+        // 即使删除失败，我们仍然继续，因为认证信息已经更新
     }
 
     progress_emitter.emit_progress("重置认证信息完成");

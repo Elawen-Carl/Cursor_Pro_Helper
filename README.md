@@ -251,6 +251,11 @@ cargo fmt && pnpm format
 cargo clippy && pnpm lint
 ```
 
+### 本地打包
+```bash
+cargo tauri dev --target x86_64-pc-windows-msvc
+```
+
 ### 贡献指南
 1. Fork 本仓库
 2. 创建特性分支
