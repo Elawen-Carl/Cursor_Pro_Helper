@@ -14,8 +14,6 @@ struct AccountData {
     password: String,
     token: String,
     usage_limit: String,
-    created_at: String,
-    updated_at: String,
 }
 
 #[derive(Debug, Deserialize)]
