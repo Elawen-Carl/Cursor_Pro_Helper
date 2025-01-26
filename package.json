@@ -12,7 +12,8 @@
     "@tauri-apps/api": "^2.2.0",
     "@tauri-apps/cli": "^2.2.5",
     "@vicons/antd": "^0.13.0",
-    "vfonts": "^0.0.3"
+    "vfonts": "^0.0.3",
+    "vue-i18n": "9"
   },
   "devDependencies": {
     "@types/node": "^20.17.13",

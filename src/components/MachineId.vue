@@ -4,7 +4,7 @@
             <div class="progress-section">
                 <div class="section-title">
                     <n-icon size="14"><info-outlined /></n-icon>
-                    进度消息
+                    {{ t('machineId.progress') }}
                 </div>
                 <n-scrollbar ref="scrollbarRef" class="message-container" trigger="none">
                     <div class="message-wrapper">
@@ -21,39 +21,39 @@
                 <div class="action-buttons">
                     <n-button type="primary" @click="resetId" :loading="resetLoading" class="action-btn" size="small">
                         <template #icon><reload-outlined /></template>
-                        一键重置
+                        {{ t('machineId.resetId') }}
                     </n-button>
                     <n-button @click="modifyId" :loading="modifyLoading" :disabled="modifyLoading" class="action-btn"
                         size="small">
                         <template #icon><edit-outlined /></template>
-                        修改 ID
+                        {{ t('machineId.modifyId') }}
                     </n-button>
                     <n-button @click="backup" :loading="backupLoading" :disabled="backupLoading" class="action-btn"
                         size="small">
                         <template #icon><save-outlined /></template>
-                        备份
+                        {{ t('machineId.backup') }}
                     </n-button>
                     <n-button @click="restore" :loading="restoreLoading" :disabled="restoreLoading" class="action-btn"
                         size="small">
                         <template #icon><rollback-outlined /></template>
-                        还原
+                        {{ t('machineId.restore') }}
                     </n-button>
                 </div>
             </div>
             <div class="config-section">
                 <div class="section-title">
                     <n-icon size="14"><folder-outlined /></n-icon>
-                    配置文件路径
+                    {{ t('machineId.configPath') }}
                 </div>
-                <n-input readonly :value="configPath" placeholder="配置文件路径" :border="false" class="config-input"
-                    size="small" />
+                <n-input readonly :value="configPath" :placeholder="t('machineId.configPath')" :border="false"
+                    class="config-input" size="small" />
             </div>
 
 
             <div class="id-section">
                 <div class="section-title">
                     <n-icon size="14"><key-outlined /></n-icon>
-                    当前 ID
+                    {{ t('machineId.currentId') }}
                 </div>
                 <div class="id-grid">
                     <div class="id-item" v-for="(id, key) in ids" :key="key">
@@ -74,6 +74,7 @@
 import { ref, onMounted, computed, type Ref, onUnmounted, nextTick } from '@vue/runtime-core'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { useI18n } from 'vue-i18n'
 import {
     NButton,
     NInput,
@@ -115,6 +116,7 @@ interface IdsMap {
 
 const message = useMessage()
 const themeVars = useThemeVars()
+const { t } = useI18n()
 
 // loading 状态
 const resetLoading = ref<boolean>(false)
@@ -158,7 +160,7 @@ const getIds = async () => {
         configPath.value = result.configPath
     } catch (e) {
         console.error('获取ID信息失败:', e)
-        message.error('获取ID信息失败: ' + e)
+        message.error(t('machineId.getIdsFailed') + ': ' + e)
     }
 }
 
@@ -176,10 +178,10 @@ const executeAction = async (
         if (shouldRefreshIds) {
             await getIds()
         }
-        message.success(successMessage)
+        message.success(t(successMessage))
     } catch (e) {
         console.error(errorMessage, e)
-        message.error(`${errorMessage}: ${e}`)
+        message.error(t(errorMessage) + ': ' + e)
     } finally {
         loadingRef.value = false
     }
@@ -189,24 +191,24 @@ const executeAction = async (
 const resetId = () => executeAction(
     () => invoke('reset_machine_id'),
     resetLoading,
-    '重置机器ID成功',
-    '重置机器ID失败'
+    'machineId.resetSuccess',
+    'machineId.resetFailed'
 )
 
 // 修改 ID
 const modifyId = () => executeAction(
     () => invoke('update_machine_id'),
     modifyLoading,
-    '修改机器ID成功',
-    '修改机器ID失败'
+    'machineId.modifySuccess',
+    'machineId.modifyFailed'
 )
 
 // 备份配置
 const backup = () => executeAction(
     () => invoke('backup_config'),
     backupLoading,
-    '备份成功',
-    '备份失败',
+    'machineId.backupSuccess',
+    'machineId.backupFailed',
     false
 )
 
@@ -214,8 +216,8 @@ const backup = () => executeAction(
 const restore = () => executeAction(
     () => invoke('restore_config'),
     restoreLoading,
-    '还原成功',
-    '还原失败'
+    'machineId.restoreSuccess',
+    'machineId.restoreFailed'
 )
 
 const scrollbarRef = ref<InstanceType<typeof NScrollbar> | null>(null)

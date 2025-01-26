@@ -1,0 +1,50 @@
+{
+    "common": {
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "reset": "Reset",
+        "apply": "Apply",
+        "test": "Test",
+        "success": "Success",
+        "error": "Error",
+        "loading": "Loading..."
+    },
+    "apiConfig": {
+        "title": "API Configuration",
+        "urlLabel": "API URL",
+        "testApi": "Test API",
+        "testing": "Testing...",
+        "applying": "Applying...",
+        "resetToDefault": "Reset to Default",
+        "responseFormat": "API Response Format Example",
+        "testResponse": "Test Response Data",
+        "noTestData": "No test data available",
+        "validUrl": "Please enter a valid URL",
+        "testSuccess": "API test successful",
+        "testFailed": "API test failed",
+        "applySuccess": "Configuration applied successfully",
+        "applyFailed": "Failed to apply configuration",
+        "resetSuccess": "Reset to default API URL",
+        "resetFailed": "Reset failed",
+        "loadFailed": "Failed to load configuration"
+    },
+    "machineId": {
+        "title": "Machine ID",
+        "configPath": "Config File Path",
+        "currentId": "Current ID",
+        "progress": "Progress Messages",
+        "resetId": "One-Click Reset",
+        "modifyId": "Modify ID",
+        "backup": "Backup",
+        "restore": "Restore",
+        "resetSuccess": "Machine ID reset successfully",
+        "resetFailed": "Failed to reset machine ID",
+        "modifySuccess": "Machine ID modified successfully",
+        "modifyFailed": "Failed to modify machine ID",
+        "backupSuccess": "Backup successful",
+        "backupFailed": "Backup failed",
+        "restoreSuccess": "Restore successful",
+        "restoreFailed": "Restore failed",
+        "getIdsFailed": "Failed to get ID information"
+    }
+}

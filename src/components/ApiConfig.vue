@@ -1,23 +1,23 @@
 <template>
-    <n-card title="API 配置" class="api-config" size="small">
+    <n-card :title="t('apiConfig.title')" class="api-config" size="small">
         <n-space vertical size="small">
             <!-- API URL 配置区域 -->
-            <n-form-item label="API URL" :show-feedback="false" size="small">
+            <n-form-item :label="t('apiConfig.urlLabel')" :show-feedback="false" size="small">
                 <n-space :size="8" align="center">
-                    <n-input v-model:value="apiUrl" type="text" placeholder="请输入API URL" :status="inputStatus"
-                        @input="validateUrl" size="small" style="height: 28px" />
+                    <n-input v-model:value="apiUrl" type="text" :placeholder="t('apiConfig.urlLabel')"
+                        :status="inputStatus" @input="validateUrl" size="small" style="height: 28px" />
                     <n-space :size="4">
                         <n-button type="primary" @click="testApi" :loading="isTestLoading"
                             :disabled="!isValidUrl || isLoading" size="small" style="padding: 0 12px; height: 28px">
-                            {{ isTestLoading ? '测试中...' : '测试API' }}
+                            {{ isTestLoading ? t('apiConfig.testing') : t('apiConfig.testApi') }}
                         </n-button>
                         <n-button type="success" @click="applyConfig" :loading="isApplyLoading"
                             :disabled="!canApply || isLoading" size="small" style="padding: 0 12px; height: 28px">
-                            {{ isApplyLoading ? '应用中...' : '应用' }}
+                            {{ isApplyLoading ? t('apiConfig.applying') : t('common.apply') }}
                         </n-button>
                         <n-button type="default" @click="resetToDefault" :disabled="isLoading" size="small"
                             style="padding: 0 12px; height: 28px">
-                            重置
+                            {{ t('apiConfig.resetToDefault') }}
                         </n-button>
                     </n-space>
                 </n-space>
@@ -26,13 +26,13 @@
             <!-- API 返回格式示例和测试结果区域 -->
             <n-grid :cols="2" :x-gap="8">
                 <n-grid-item>
-                    <n-card title="API 返回格式示例" size="small" :bordered="false" class="example-card">
+                    <n-card :title="t('apiConfig.responseFormat')" size="small" :bordered="false" class="example-card">
                         <n-code :code="apiResponseExample" language="json" :word-wrap="true" show-line-numbers />
                     </n-card>
                 </n-grid-item>
                 <n-grid-item>
-                    <n-card title="测试接口返回数据" size="small" :bordered="false" class="example-card">
-                        <n-empty v-if="!testResponse" description="暂无测试数据" size="tiny" />
+                    <n-card :title="t('apiConfig.testResponse')" size="small" :bordered="false" class="example-card">
+                        <n-empty v-if="!testResponse" :description="t('apiConfig.noTestData')" size="tiny" />
                         <n-code v-else :code="testResponse" language="json" :word-wrap="true" show-line-numbers />
                     </n-card>
                 </n-grid-item>
@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { useI18n } from 'vue-i18n'
 import {
     NCard,
     NSpace,
@@ -57,7 +58,12 @@ import {
     useMessage,
 } from 'naive-ui'
 
+defineOptions({
+    name: 'ApiConfig'
+})
+
 const message = useMessage()
+const { t } = useI18n()
 const DEFAULT_API_URL = 'https://cursor-account-api.vercel.app/account/random'
 
 const apiUrl = ref(DEFAULT_API_URL)
@@ -92,7 +98,7 @@ function validateUrl() {
         isValidUrl.value = true
     } catch {
         isValidUrl.value = false
-        message.error('请输入有效的URL')
+        message.error(t('apiConfig.validUrl'))
     }
 }
 
@@ -115,10 +121,10 @@ async function testApi() {
         }
 
         testResult.value = true
-        message.success('API测试成功')
+        message.success(t('apiConfig.testSuccess'))
     } catch (error) {
         testResult.value = false
-        message.error(`API测试失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        message.error(t('apiConfig.testFailed') + ': ' + (error instanceof Error ? error.message : t('common.error')))
     } finally {
         isTestLoading.value = false
     }
@@ -131,9 +137,9 @@ async function applyConfig() {
 
     try {
         await invoke('save_api_config', { url: apiUrl.value })
-        message.success('配置已成功应用')
+        message.success(t('apiConfig.applySuccess'))
     } catch (error) {
-        message.error(`应用配置失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        message.error(t('apiConfig.applyFailed') + ': ' + (error instanceof Error ? error.message : t('common.error')))
     } finally {
         isApplyLoading.value = false
     }
@@ -147,11 +153,11 @@ async function resetToDefault() {
             apiUrl.value = config.url
             testResult.value = null
             testResponse.value = ''
-            message.success('已重置为默认API URL')
+            message.success(t('apiConfig.resetSuccess'))
             validateUrl()
         }
     } catch (error) {
-        message.error(`重置失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        message.error(t('apiConfig.resetFailed') + ': ' + (error instanceof Error ? error.message : t('common.error')))
     }
 }
 
@@ -166,7 +172,7 @@ onMounted(async () => {
         }
     } catch (error) {
         console.error('Failed to load API config:', error)
-        message.error('加载配置失败')
+        message.error(t('apiConfig.loadFailed'))
     }
 })
 </script>

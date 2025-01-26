@@ -6,9 +6,12 @@
                     <n-layout-header>
                         <div class="header">
                             <h1>Cursor Pro Helper</h1>
-                            <n-button @click="toggleTheme" text>
-                                {{ isDark ? '🌞' : '🌙' }}
-                            </n-button>
+                            <div class="header-right">
+                                <language-switch />
+                                <n-button @click="toggleTheme" text>
+                                    {{ isDark ? '🌞' : '🌙' }}
+                                </n-button>
+                            </div>
                         </div>
                     </n-layout-header>
                     <n-layout-content class="content">
@@ -27,6 +30,11 @@ import type { GlobalTheme } from 'naive-ui'
 import { darkTheme, NConfigProvider, NLayout, NLayoutHeader, NLayoutContent, NButton, NMessageProvider } from 'naive-ui'
 import MachineId from './components/MachineId.vue'
 import ApiConfig from './components/ApiConfig.vue'
+import LanguageSwitch from './components/LanguageSwitch.vue'
+
+defineOptions({
+    name: 'App'
+})
 
 const isDark = ref<boolean>(false)
 const currentTheme = computed<GlobalTheme | null>(() => isDark.value ? darkTheme : null)
@@ -109,5 +117,11 @@ h1 {
 
 .n-layout-content {
     background-color: var(--primary-bg) !important;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 </style>

@@ -1,0 +1,50 @@
+{
+    "common": {
+        "confirm": "确认",
+        "cancel": "取消",
+        "reset": "重置",
+        "apply": "应用",
+        "test": "测试",
+        "success": "成功",
+        "error": "错误",
+        "loading": "加载中..."
+    },
+    "apiConfig": {
+        "title": "API 配置",
+        "urlLabel": "API URL",
+        "testApi": "测试 API",
+        "testing": "测试中...",
+        "applying": "应用中...",
+        "resetToDefault": "重置为默认",
+        "responseFormat": "API 返回格式示例",
+        "testResponse": "测试接口返回数据",
+        "noTestData": "暂无测试数据",
+        "validUrl": "请输入有效的URL",
+        "testSuccess": "API测试成功",
+        "testFailed": "API测试失败",
+        "applySuccess": "配置已成功应用",
+        "applyFailed": "应用配置失败",
+        "resetSuccess": "已重置为默认API URL",
+        "resetFailed": "重置失败",
+        "loadFailed": "加载配置失败"
+    },
+    "machineId": {
+        "title": "机器 ID",
+        "configPath": "配置文件路径",
+        "currentId": "当前 ID",
+        "progress": "进度消息",
+        "resetId": "一键重置",
+        "modifyId": "修改 ID",
+        "backup": "备份",
+        "restore": "还原",
+        "resetSuccess": "重置机器ID成功",
+        "resetFailed": "重置机器ID失败",
+        "modifySuccess": "修改机器ID成功",
+        "modifyFailed": "修改机器ID失败",
+        "backupSuccess": "备份成功",
+        "backupFailed": "备份失败",
+        "restoreSuccess": "还原成功",
+        "restoreFailed": "还原失败",
+        "getIdsFailed": "获取ID信息失败"
+    }
+}
