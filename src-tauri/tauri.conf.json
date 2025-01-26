@@ -16,7 +16,7 @@
     },
     "identifier": "com.cursorprohelper.app",
     "productName": "Cursor Pro Helper",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "app": {
         "security": {
             "csp": null
