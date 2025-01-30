@@ -17,7 +17,24 @@
         "tokenPlaceholder": "Enter token",
         "updating": "Updating...",
         "updateSuccess": "Auth info updated successfully",
-        "updateFailed": "Failed to update auth info"
+        "updateFailed": "Failed to update auth info",
+        "errors": {
+            "networkError": "Failed to get random account: Please check your network connection or API service availability",
+            "serverError": "Failed to get response: Server response error",
+            "parseError": "Failed to parse API response: Server returned invalid data format",
+            "noAccounts": "No accounts available: Please try again later or contact administrator to add accounts",
+            "updateFailed": "Failed to update auth info: Unable to write auth data, please check program permissions",
+            "deleteAccountFailed": "Failed to delete old account (no impact on usage), but auth info updated successfully",
+            "apiError": "API returned error"
+        },
+        "progress": {
+            "start": "Starting auth reset process...",
+            "gettingAccount": "Getting random account...",
+            "accountReceived": "Successfully received random account",
+            "updating": "Updating auth info...",
+            "updateSuccess": "Auth info updated successfully",
+            "complete": "Auth reset complete"
+        }
     },
     "apiConfig": {
         "title": "API Configuration",

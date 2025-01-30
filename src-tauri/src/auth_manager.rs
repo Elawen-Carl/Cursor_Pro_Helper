@@ -56,10 +56,10 @@ pub async fn delete_account(email: &str, progress_emitter: &dyn ProgressEmitter)
 
 pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     info!("Starting auth reset process");
-    progress_emitter.emit_progress("开始重置认证信息...");
+    progress_emitter.emit_progress("authConfig.progress.start");
 
     // 获取随机账号
-    progress_emitter.emit_progress("正在获取随机账号...");
+    progress_emitter.emit_progress("authConfig.progress.gettingAccount");
     let client = reqwest::Client::new();
     let response = match client
         .get("https://cursor-account-api.vercel.app/account/random")
@@ -68,7 +68,7 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     {
         Ok(resp) => resp,
         Err(e) => {
-            let error_msg = format!("获取随机账号失败: {}", e);
+            let error_msg = format!("authConfig.errors.networkError - {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
@@ -79,7 +79,7 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     let response_text = match response.text().await {
         Ok(text) => text,
         Err(e) => {
-            let error_msg = format!("获取响应内容失败: {}", e);
+            let error_msg = format!("authConfig.errors.serverError - {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
@@ -91,7 +91,7 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     let api_response: ApiResponse = match serde_json::from_str(&response_text) {
         Ok(data) => data,
         Err(e) => {
-            let error_msg = format!("解析API响应失败: {}", e);
+            let error_msg = format!("authConfig.errors.parseError - {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
@@ -99,16 +99,20 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     };
 
     if !api_response.success {
-        let error_msg = format!("API返回失败: {}", api_response.message);
+        let error_msg = if api_response.message.contains("No accounts available") {
+            "authConfig.errors.noAccounts".to_string()
+        } else {
+            format!("authConfig.errors.apiError: {}", api_response.message)
+        };
         error!("{}", error_msg);
         progress_emitter.emit_progress(&error_msg);
         return false;
     }
 
-    progress_emitter.emit_progress("成功获取随机账号");
+    progress_emitter.emit_progress("authConfig.progress.accountReceived");
 
     // 更新认证信息
-    progress_emitter.emit_progress("开始更新认证信息...");
+    progress_emitter.emit_progress("authConfig.progress.updating");
     let email = api_response.data.email.clone();
     let success = update_auth(
         Some(email.clone()),
@@ -117,20 +121,20 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     );
 
     if !success {
-        progress_emitter.emit_progress("更新认证信息失败");
+        progress_emitter.emit_progress("authConfig.errors.updateFailed");
         return false;
     }
 
-    progress_emitter.emit_progress("认证信息更新成功");
+    progress_emitter.emit_progress("authConfig.progress.updateSuccess");
 
     // 如果更新成功，删除旧账号
     if success && !delete_account(&email, progress_emitter).await {
         error!("Failed to delete account after reset");
-        progress_emitter.emit_progress("删除旧账号失败，但认证信息已更新");
+        progress_emitter.emit_progress("authConfig.errors.deleteAccountFailed");
         // 即使删除失败，我们仍然继续，因为认证信息已经更新
     }
 
-    progress_emitter.emit_progress("重置认证信息完成");
+    progress_emitter.emit_progress("authConfig.progress.complete");
     success
 }
 

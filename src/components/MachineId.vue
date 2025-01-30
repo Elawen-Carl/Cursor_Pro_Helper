@@ -148,7 +148,7 @@ const labels = {
     devDeviceId: 'Dev Device ID',
     sqmId: 'SQM ID'
 } as const
-//todo-可以设置获取账号的api
+
 // 更新所有 ID 信息
 const getIds = async () => {
     try {
@@ -237,11 +237,20 @@ onMounted(async () => {
     // 监听进度事件
     const unlistenFn = await listen<{ message: string }>('reset_progress', async (event) => {
         console.log('收到进度事件:', event)
-        progressMessage.value = event.payload.message
-        progressMessages.value.push(event.payload.message)
+        const msg = event.payload.message
+        // 检查是否是国际化消息键
+        const translatedMsg = msg.startsWith('authConfig.') ? t(msg) : msg
+        progressMessage.value = translatedMsg
+        progressMessages.value.push(translatedMsg)
         // 保持最新的 100 条消息
         if (progressMessages.value.length > 100) {
             progressMessages.value = progressMessages.value.slice(-100)
+        }
+        // 如果是错误消息，显示全局提示
+        if (msg.includes('errors.')) {
+            message.error(translatedMsg)
+        } else if (msg.includes('progress.complete')) {
+            message.success(translatedMsg)
         }
         // 自动滚动到底部
         await scrollToBottom()
