@@ -360,7 +360,7 @@ impl MachineService {
         self.emit_progress("正在恢复文件只读属性...");
         for _ in 0..3 {
             // 最多尝试3次
-            if let Ok(_) = self.set_readonly(true).await {
+            if self.set_readonly(true).await.is_ok() {
                 break;
             }
             sleep(Duration::from_millis(500)).await;
