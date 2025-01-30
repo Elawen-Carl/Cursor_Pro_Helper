@@ -353,11 +353,26 @@ impl MachineService {
             return Err(e);
         }
 
+        // 等待文件系统完成写入
+        sleep(Duration::from_millis(500)).await;
+
         // 7. 恢复只读属性
         self.emit_progress("正在恢复文件只读属性...");
-        if let Err(e) = self.set_readonly(true).await {
-            error!("恢复只读属性失败: {}", e);
-            return Err(e);
+        for _ in 0..3 {
+            // 最多尝试3次
+            if let Ok(_) = self.set_readonly(true).await {
+                break;
+            }
+            sleep(Duration::from_millis(500)).await;
+        }
+
+        // 8. 验证文件权限
+        self.emit_progress("正在验证文件权限...");
+        let metadata = fs::metadata(&self.config_path).await?;
+        let perms = metadata.permissions();
+        if !perms.readonly() {
+            error!("文件权限验证失败：文件不是只读状态");
+            return Err(anyhow::anyhow!("文件权限验证失败：无法设置为只读状态"));
         }
 
         self.emit_progress("机器ID更新完成！");
@@ -426,10 +441,12 @@ impl MachineService {
         None
     }
 
-    /// 关闭并重启Cursor
+    /// 重启 Cursor
     pub async fn restart_cursor(&self) -> Result<()> {
+        self.emit_progress("开始重启 Cursor...");
+
         // Windows
-        #[cfg(target_os = "windows")]
+        #[cfg(windows)]
         {
             // 先从运行中的进程获取路径
             self.emit_progress("正在查找运行中的Cursor进程...");
@@ -516,24 +533,38 @@ impl MachineService {
                 }
             }
 
+            // 增加等待时间，确保进程完全退出
             self.emit_progress("等待进程完全退出...");
-            sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(5)).await;
 
-            // 启动Cursor
-            self.emit_progress("正在启动Cursor...");
-            match Command::new("cmd")
-                .args(["/C", "start", "", &cursor_path])
-                .spawn()
-            {
+            // 验证进程是否完全退出
+            let sys = System::new_all();
+            let mut retry_count = 0;
+            while retry_count < 3 {
+                let cursor_running = sys
+                    .processes()
+                    .values()
+                    .any(|process| process.name().to_lowercase() == "cursor.exe");
+
+                if !cursor_running {
+                    break;
+                }
+
+                retry_count += 1;
+                self.emit_progress("进程仍在运行，等待额外时间...");
+                sleep(Duration::from_secs(2)).await;
+            }
+
+            // 启动 Cursor
+            self.emit_progress("正在启动 Cursor...");
+            match Command::new(&cursor_path).spawn() {
                 Ok(_) => {
-                    self.emit_progress("Cursor启动成功！");
-                    info!("Successfully started Cursor from path: {}", cursor_path);
+                    self.emit_progress("Cursor 启动成功");
                 }
                 Err(e) => {
-                    let err_msg = format!("启动Cursor失败: {}", e);
-                    error!("{}", err_msg);
-                    self.emit_progress(&err_msg);
-                    return Err(anyhow::anyhow!(err_msg));
+                    error!("启动 Cursor 失败: {}", e);
+                    self.emit_progress(&format!("启动 Cursor 失败: {}", e));
+                    return Err(anyhow::anyhow!("启动 Cursor 失败"));
                 }
             }
         }
@@ -541,31 +572,48 @@ impl MachineService {
         // macOS
         #[cfg(target_os = "macos")]
         {
-            // 优雅关闭Cursor
-            Command::new("osascript")
-                .args(["-e", "tell application \"Cursor\" to quit"])
+            // 关闭 Cursor
+            Command::new("pkill")
+                .args(["-x", "Cursor"])
                 .output()
-                .context("关闭Cursor失败")?;
+                .context("关闭 Cursor 失败")?;
 
-            sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(5)).await;
 
-            // 启动Cursor
+            // 启动 Cursor
             Command::new("open")
                 .args(["-a", "Cursor"])
                 .spawn()
-                .context("启动Cursor失败")?;
+                .context("启动 Cursor 失败")?;
         }
 
         // Linux
         #[cfg(target_os = "linux")]
         {
-            // 优雅关闭Cursor
+            // 优雅关闭 Cursor
             Command::new("killall")
                 .args(["-TERM", "cursor"])
                 .output()
-                .context("关闭Cursor失败")?;
+                .context("关闭 Cursor 失败")?;
 
-            sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(5)).await;
+
+            // 验证进程是否完全退出
+            let mut retry_count = 0;
+            while retry_count < 3 {
+                match Command::new("pgrep").arg("cursor").output() {
+                    Ok(output) => {
+                        if output.status.success() {
+                            retry_count += 1;
+                            self.emit_progress("进程仍在运行，等待额外时间...");
+                            sleep(Duration::from_secs(2)).await;
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
 
             // 尝试多个可能的启动路径
             let possible_paths = [
@@ -577,18 +625,18 @@ impl MachineService {
             let mut started = false;
             for path in possible_paths {
                 if std::path::Path::new(path).exists() {
-                    Command::new(path).spawn().context("启动Cursor失败")?;
+                    Command::new(path).spawn().context("启动 Cursor 失败")?;
                     started = true;
                     break;
                 }
             }
 
             if !started {
-                return Err(anyhow::anyhow!("找不到Cursor可执行文件"));
+                return Err(anyhow::anyhow!("找不到 Cursor 可执行文件"));
             }
         }
 
-        self.emit_progress("Cursor重启操作完成！");
+        self.emit_progress("Cursor 重启操作完成！");
         Ok(())
     }
 

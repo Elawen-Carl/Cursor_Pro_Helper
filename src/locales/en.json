@@ -9,6 +9,16 @@
         "error": "Error",
         "loading": "Loading..."
     },
+    "authConfig": {
+        "title": "Auth Config",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Enter email",
+        "tokenLabel": "Token",
+        "tokenPlaceholder": "Enter token",
+        "updating": "Updating...",
+        "updateSuccess": "Auth info updated successfully",
+        "updateFailed": "Failed to update auth info"
+    },
     "apiConfig": {
         "title": "API Configuration",
         "urlLabel": "API URL",

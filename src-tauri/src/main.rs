@@ -4,24 +4,7 @@
     windows_subsystem = "windows"
 )]
 
-use cursor_pro_helper::auth_manager;
 use cursor_pro_helper::commands::*;
-use cursor_pro_helper::events::TauriProgressEmitter;
-
-#[tauri::command]
-fn update_auth(
-    email: Option<String>,
-    access_token: Option<String>,
-    refresh_token: Option<String>,
-) -> bool {
-    auth_manager::update_auth(email, access_token, refresh_token)
-}
-
-#[tauri::command]
-async fn reset_auth(app_handle: tauri::AppHandle) -> bool {
-    let progress_emitter = Box::new(TauriProgressEmitter::new(app_handle));
-    auth_manager::reset_auth(&*progress_emitter).await
-}
 
 fn main() {
     // 初始化日志

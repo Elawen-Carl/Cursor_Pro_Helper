@@ -1,4 +1,5 @@
 use crate::api_config::{ApiConfig, ApiConfigManager};
+use crate::auth_manager;
 use crate::events::TauriProgressEmitter;
 use crate::machine::MachineService;
 use serde::{Deserialize, Serialize};
@@ -108,6 +109,21 @@ pub async fn update_machine_id() -> Result<(), String> {
         error!("更新机器 ID 失败: {}", e);
         e.to_string()
     })
+}
+
+#[command]
+pub async fn update_auth(email: String, token: String) -> Result<(), String> {
+    info!("开始更新认证信息");
+    match auth_manager::update_auth(Some(email), Some(token.clone()), Some(token)) {
+        true => Ok(()),
+        false => Err("更新认证信息失败".to_string()),
+    }
+}
+
+#[command]
+pub async fn reset_auth(app_handle: tauri::AppHandle) -> bool {
+    let progress_emitter = Box::new(TauriProgressEmitter::new(app_handle));
+    auth_manager::reset_auth(&*progress_emitter).await
 }
 
 #[tauri::command]

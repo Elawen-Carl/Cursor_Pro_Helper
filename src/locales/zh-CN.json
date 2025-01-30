@@ -46,5 +46,15 @@
         "restoreSuccess": "还原成功",
         "restoreFailed": "还原失败",
         "getIdsFailed": "获取ID信息失败"
+    },
+    "authConfig": {
+        "title": "认证配置",
+        "emailLabel": "邮箱",
+        "emailPlaceholder": "请输入邮箱",
+        "tokenLabel": "Token",
+        "tokenPlaceholder": "请输入Token",
+        "updating": "更新中...",
+        "updateSuccess": "认证信息更新成功",
+        "updateFailed": "更新认证信息失败"
     }
 }

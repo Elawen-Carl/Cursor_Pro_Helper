@@ -16,6 +16,7 @@
                     </n-layout-header>
                     <n-layout-content class="content">
                         <ApiConfig />
+                        <AuthConfig />
                         <MachineId />
                     </n-layout-content>
                 </n-layout>
@@ -31,6 +32,7 @@ import { darkTheme, NConfigProvider, NLayout, NLayoutHeader, NLayoutContent, NBu
 import MachineId from './components/MachineId.vue'
 import ApiConfig from './components/ApiConfig.vue'
 import LanguageSwitch from './components/LanguageSwitch.vue'
+import AuthConfig from './components/AuthConfig.vue'
 
 defineOptions({
     name: 'App'
