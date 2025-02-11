@@ -1,9 +1,9 @@
+use crate::utils;
+use anyhow::{Context, Result};
+use rand::Rng;
+use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
-use regex::Regex;
-use rand::Rng;
-use anyhow::{Context, Result};
-use crate::utils;
 use tracing::{error, info};
 
 pub struct Patcher {
@@ -174,23 +174,31 @@ impl Patcher {
 
     pub fn generate_mac_address() -> String {
         let mut rng = rand::thread_rng();
-        let invalid_macs = vec!["00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff", "ac:de:48:00:11:22"];
-        
+        let invalid_macs = vec![
+            "00:00:00:00:00:00",
+            "ff:ff:ff:ff:ff:ff",
+            "ac:de:48:00:11:22",
+        ];
+
         loop {
             let mac: String = (0..6)
                 .map(|_| format!("{:02X}", rng.gen_range(0..=255)))
                 .collect::<Vec<String>>()
                 .join(":");
-            
+
             if !invalid_macs.contains(&mac.as_str()) {
                 return mac;
             }
         }
     }
 
-    pub fn patch(&mut self, machine_id: Option<String>, mac_addr: Option<String>, 
-                 sqm_id: Option<String>, dev_device_id: Option<String>) -> Result<()> {
-        
+    pub fn patch(
+        &mut self,
+        machine_id: Option<String>,
+        mac_addr: Option<String>,
+        sqm_id: Option<String>,
+        dev_device_id: Option<String>,
+    ) -> Result<()> {
         // 备份原始文件
         let backup_path = self.js_path.with_extension("js.bak");
         if !backup_path.exists() {
@@ -198,7 +206,9 @@ impl Patcher {
         }
 
         // 解除文件的只读属性
-        let mut perms = fs::metadata(&self.js_path).context("获取文件权限失败")?.permissions();
+        let mut perms = fs::metadata(&self.js_path)
+            .context("获取文件权限失败")?
+            .permissions();
         perms.set_readonly(false);
         fs::set_permissions(&self.js_path, perms).context("解除文件只读属性失败")?;
 
@@ -211,7 +221,7 @@ impl Patcher {
             &data,
             r"=.{0,50}timeout.{0,10}5e3.*?,",
             &format!("=/*csp1*/\"{}\"/*1csp*/,", machine_id),
-            r"=/\*csp1\*/.*?/\*1csp\*/,"
+            r"=/\*csp1\*/.*?/\*1csp\*/,",
         )?;
 
         // Patch MAC address
@@ -221,17 +231,17 @@ impl Patcher {
             &data,
             r"(function .{0,50}\{).{0,300}Unable to retrieve mac address.*?(\})",
             &format!(r#"$1 return/*csp2*/"{}"/*2csp*/; $2"#, mac),
-            r"()return/\*csp2\*/.*?/\*2csp\*/;()"
+            r"()return/\*csp2\*/.*?/\*2csp\*/;()",
         )?;
 
         // Patch SQM ID
-        let sqm = sqm_id.unwrap_or_else(String::new);  
+        let sqm = sqm_id.unwrap_or_else(String::new);
         info!("Patching SQM ID: {}", sqm);
         data = self.replace_in_data(
             &data,
             r#"return.{0,50}\.GetStringRegKey.*?HKEY_LOCAL_MACHINE.*?MachineId.*?\|\|.*?"""#,
             &format!("return/*csp3*/\"{}\"/*3csp*/", sqm),
-            r"return/\*csp3\*/.*?/\*3csp\*/"
+            r"return/\*csp3\*/.*?/\*3csp\*/",
         )?;
 
         // Patch device ID
@@ -241,19 +251,25 @@ impl Patcher {
             &data,
             r"return.{0,50}vscode/deviceid.*?getDeviceId\(\)",
             &format!("return/*csp4*/\"{}\"/*4csp*/", dev_id),
-            r"return/\*csp4\*/.*?/\*4csp\*/"
+            r"return/\*csp4\*/.*?/\*4csp\*/",
         )?;
 
         // 保存修改
         fs::write(&self.js_path, &data).context("保存修改失败")?;
-        
+
         // 更新内部数据
         self.data = data;
 
         Ok(())
     }
 
-    fn replace_in_data(&self, data: &str, pattern: &str, replacement: &str, probe: &str) -> Result<String> {
+    fn replace_in_data(
+        &self,
+        data: &str,
+        pattern: &str,
+        replacement: &str,
+        probe: &str,
+    ) -> Result<String> {
         let regex = Regex::new(pattern).context("创建正则表达式失败")?;
         let probe_regex = Regex::new(probe).context("创建探测正则表达式失败")?;
 
@@ -262,9 +278,11 @@ impl Patcher {
 
         if count == 0 {
             if patched_count > 0 {
-                info!("Found {} pattern{} already patched, will overwrite", 
+                info!(
+                    "Found {} pattern{} already patched, will overwrite",
                     patched_count,
-                    if patched_count == 1 { "" } else { "s" });
+                    if patched_count == 1 { "" } else { "s" }
+                );
             } else {
                 info!("Warning: Pattern not found, SKIPPED!");
                 return Ok(data.to_string());
@@ -291,14 +309,18 @@ impl Patcher {
 
         let replaced_count = replaced1_count + replaced2_count;
         if replaced_count != count + patched_count {
-            info!("Warning: Patched {}/{}, failed {}", 
+            info!(
+                "Warning: Patched {}/{}, failed {}",
                 replaced_count,
                 count + patched_count,
-                count + patched_count - replaced_count);
+                count + patched_count - replaced_count
+            );
         } else {
-            info!("Patched {} pattern{}", 
+            info!(
+                "Patched {} pattern{}",
                 replaced_count,
-                if replaced_count == 1 { "" } else { "s" });
+                if replaced_count == 1 { "" } else { "s" }
+            );
         }
 
         Ok(result)
@@ -318,15 +340,17 @@ impl Patcher {
             .context("创建 machine ID 正则表达式失败")?;
         let mac_regex = Regex::new(r#"/\*csp2\*/"([^"]*)"/\*2csp\*/"#)
             .context("创建 MAC address 正则表达式失败")?;
-        let sqm_regex = Regex::new(r#"/\*csp3\*/"([^"]*)"/\*3csp\*/"#)
-            .context("创建 SQM ID 正则表达式失败")?;
+        let sqm_regex =
+            Regex::new(r#"/\*csp3\*/"([^"]*)"/\*3csp\*/"#).context("创建 SQM ID 正则表达式失败")?;
         let device_id_regex = Regex::new(r#"/\*csp4\*/"([^"]*)"/\*4csp\*/"#)
             .context("创建 device ID 正则表达式失败")?;
 
         let machine_id = match machine_id_regex.captures(&self.data) {
             Some(cap) => {
                 info!("Found machine_id match: {:?}", cap.get(1));
-                cap.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                cap.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
             }
             None => {
                 info!("No machine_id match found");
@@ -337,7 +361,9 @@ impl Patcher {
         let mac_machine_id = match mac_regex.captures(&self.data) {
             Some(cap) => {
                 info!("Found mac match: {:?}", cap.get(1));
-                cap.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                cap.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
             }
             None => {
                 info!("No mac match found");
@@ -348,7 +374,9 @@ impl Patcher {
         let sqm_id = match sqm_regex.captures(&self.data) {
             Some(cap) => {
                 info!("Found sqm match: {:?}", cap.get(1));
-                cap.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                cap.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
             }
             None => {
                 info!("No sqm match found");
@@ -359,7 +387,9 @@ impl Patcher {
         let dev_device_id = match device_id_regex.captures(&self.data) {
             Some(cap) => {
                 info!("Found device match: {:?}", cap.get(1));
-                cap.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                cap.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
             }
             None => {
                 info!("No device match found");
@@ -369,4 +399,4 @@ impl Patcher {
 
         Ok((machine_id, mac_machine_id, dev_device_id, sqm_id))
     }
-} 
+}
