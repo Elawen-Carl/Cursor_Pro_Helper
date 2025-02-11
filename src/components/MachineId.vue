@@ -47,16 +47,8 @@
                 </div>
                 <n-input readonly :value="configPath" :placeholder="t('machineId.configPath')" :border="false"
                     class="config-input" size="small" />
-            </div>
-
-
-            <div class="id-section">
-                <div class="section-title">
-                    <n-icon size="14"><key-outlined /></n-icon>
-                    {{ t('machineId.currentId') }}
-                </div>
                 <div class="id-grid">
-                    <div class="id-item" v-for="(id, key) in ids" :key="key">
+                    <div class="id-item" v-for="(id, key) in configIds" :key="key">
                         <div class="id-label">{{ labels[key] }}</div>
                         <n-input readonly :value="id" :placeholder="labels[key]" :border="false" class="id-input"
                             size="small" />
@@ -64,6 +56,21 @@
                 </div>
             </div>
 
+            <div class="config-section">
+                <div class="section-title">
+                    <n-icon size="14"><folder-outlined /></n-icon>
+                    {{ t('machineId.mainJsPath') }}
+                </div>
+                <n-input readonly :value="mainJsPath" :placeholder="t('machineId.mainJsPath')" :border="false"
+                    class="config-input" size="small" />
+                <div class="id-grid">
+                    <div class="id-item" v-for="(id, key) in mainJsIds" :key="key">
+                        <div class="id-label">{{ labels[key] }}</div>
+                        <n-input readonly :value="id" :placeholder="labels[key]" :border="false" class="id-input"
+                            size="small" />
+                    </div>
+                </div>
+            </div>
 
         </div>
     </n-card>
@@ -114,6 +121,14 @@ interface IdsMap {
     sqmId: string
 }
 
+interface MainJsIds {
+    machineId: string
+    macMachineId: string
+    devDeviceId: string
+    sqmId: string
+    jsPath: string
+}
+
 const message = useMessage()
 const themeVars = useThemeVars()
 const { t } = useI18n()
@@ -130,24 +145,51 @@ const progressMessages = ref<string[]>([])
 
 // ID 相关状态
 const configPath = ref<string>('')
+const mainJsPath = ref<string>('')
 const machineId = ref<string>('')
 const macMachineId = ref<string>('')
 const devDeviceId = ref<string>('')
 const sqmId = ref<string>('')
+const mainJsMachineId = ref<string>('')
+const mainJsMacMachineId = ref<string>('')
+const mainJsDevDeviceId = ref<string>('')
+const mainJsSqmId = ref<string>('')
 
-const ids = computed<IdsMap>(() => ({
+const configIds = computed<IdsMap>(() => ({
     machineId: machineId.value,
     macMachineId: macMachineId.value,
     devDeviceId: devDeviceId.value,
     sqmId: sqmId.value
 }))
 
-const labels = {
+const mainJsIds = computed<IdsMap>(() => ({
+    machineId: mainJsMachineId.value,
+    macMachineId: mainJsMacMachineId.value,
+    devDeviceId: mainJsDevDeviceId.value,
+    sqmId: mainJsSqmId.value
+}))
+
+const labels: Record<keyof IdsMap, string> = {
     machineId: 'Machine ID',
     macMachineId: 'Mac Machine ID',
     devDeviceId: 'Dev Device ID',
     sqmId: 'SQM ID'
-} as const
+}
+
+// 获取 main.js 中的 ID
+const getMainJsIds = async () => {
+    try {
+        const result = await invoke<MainJsIds>('get_mainjs_ids')
+        mainJsMachineId.value = result.machineId
+        mainJsMacMachineId.value = result.macMachineId
+        mainJsDevDeviceId.value = result.devDeviceId
+        mainJsSqmId.value = result.sqmId
+        mainJsPath.value = result.jsPath
+    } catch (e) {
+        console.error('获取main.js中的ID失败:', e)
+        message.error(t('machineId.getMainJsIdsFailed') + ': ' + e)
+    }
+}
 
 // 更新所有 ID 信息
 const getIds = async () => {
@@ -197,7 +239,10 @@ const resetId = () => executeAction(
 
 // 修改 ID
 const modifyId = () => executeAction(
-    () => invoke('update_machine_id'),
+    async () => {
+        await invoke('update_machine_id')
+        await getMainJsIds() // 更新 main.js 中的 ID
+    },
     modifyLoading,
     'machineId.modifySuccess',
     'machineId.modifyFailed'
@@ -205,7 +250,11 @@ const modifyId = () => executeAction(
 
 // 备份配置
 const backup = () => executeAction(
-    () => invoke('backup_config'),
+    async () => {
+        await invoke('backup_config', { appHandle: {} })  // 传递空对象作为app_handle
+        await getIds()  // 刷新配置文件的ID
+        await getMainJsIds()  // 刷新main.js的ID
+    },
     backupLoading,
     'machineId.backupSuccess',
     'machineId.backupFailed',
@@ -214,7 +263,11 @@ const backup = () => executeAction(
 
 // 还原配置
 const restore = () => executeAction(
-    () => invoke('restore_config'),
+    async () => {
+        await invoke('restore_config', { appHandle: {} })  // 传递空对象作为app_handle
+        await getIds()  // 刷新配置文件的ID
+        await getMainJsIds()  // 刷新main.js的ID
+    },
     restoreLoading,
     'machineId.restoreSuccess',
     'machineId.restoreFailed'
@@ -233,6 +286,7 @@ const scrollToBottom = async () => {
 // 监听进度事件
 onMounted(async () => {
     await getIds()
+    await getMainJsIds()
 
     // 监听进度事件
     const unlistenFn = await listen<{ message: string }>('reset_progress', async (event) => {
@@ -298,6 +352,7 @@ onMounted(async () => {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    margin-top: 12px;
 }
 
 .id-item {

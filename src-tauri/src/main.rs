@@ -23,6 +23,7 @@ fn main() {
             get_api_config,
             save_api_config,
             reset_api_config,
+            get_mainjs_ids,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

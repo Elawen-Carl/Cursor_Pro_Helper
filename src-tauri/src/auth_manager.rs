@@ -11,9 +11,29 @@ use tracing::{error, info};
 #[allow(dead_code)]
 struct AccountData {
     email: String,
+    #[serde(default)]
     password: String,
     token: String,
+    #[serde(default)]
+    user: String,
+    #[serde(default = "default_usage_limit")]
     usage_limit: String,
+}
+
+fn default_usage_limit() -> String {
+    "unlimited".to_string()
+}
+
+impl AccountData {
+    fn validate(&self) -> Result<(), String> {
+        if self.email.is_empty() {
+            return Err("authConfig.errors.missingEmail".to_string());
+        }
+        if self.token.is_empty() {
+            return Err("authConfig.errors.missingToken".to_string());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -22,6 +42,19 @@ struct ApiResponse {
     success: bool,
     data: AccountData,
     message: String,
+}
+
+impl ApiResponse {
+    fn validate(&self) -> Result<(), String> {
+        if !self.success {
+            return Err(if self.message.contains("No accounts available") {
+                "authConfig.errors.noAccounts".to_string()
+            } else {
+                format!("authConfig.errors.apiError: {}", self.message)
+            });
+        }
+        self.data.validate()
+    }
 }
 
 /// 删除账号
@@ -39,14 +72,14 @@ pub async fn delete_account(email: &str, progress_emitter: &dyn ProgressEmitter)
                 progress_emitter.emit_progress("账号删除成功");
                 true
             } else {
-                let error_msg = format!("删除账号失败. 状态码: {}", response.status());
+                let error_msg = format!("authConfig.errors.deleteFailed: {}", response.status());
                 error!("{}", error_msg);
                 progress_emitter.emit_progress(&error_msg);
                 false
             }
         }
         Err(e) => {
-            let error_msg = format!("发送删除请求失败: {}", e);
+            let error_msg = format!("authConfig.errors.deleteNetworkError: {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             false
@@ -61,51 +94,70 @@ pub async fn reset_auth(progress_emitter: &dyn ProgressEmitter) -> bool {
     // 获取随机账号
     progress_emitter.emit_progress("authConfig.progress.gettingAccount");
     let client = reqwest::Client::new();
-    let response = match client
-        .get("https://cursor-account-api.vercel.app/account/random")
-        .send()
-        .await
-    {
-        Ok(resp) => resp,
+
+    // 获取 API 配置
+    let api_config = match crate::api_config::ApiConfigManager::new() {
+        Ok(manager) => match manager.load() {
+            Ok(config) => config,
+            Err(e) => {
+                let error_msg = format!("authConfig.errors.loadConfigFailed: {}", e);
+                error!("{}", error_msg);
+                progress_emitter.emit_progress(&error_msg);
+                return false;
+            }
+        },
         Err(e) => {
-            let error_msg = format!("authConfig.errors.networkError - {}", e);
+            let error_msg = format!("authConfig.errors.createConfigManagerFailed: {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
 
-    // 打印响应内容以便调试
+    let response = match client.get(&api_config.url).send().await {
+        Ok(resp) => resp,
+        Err(e) => {
+            let error_msg = format!("authConfig.errors.networkError: {}", e);
+            error!("{}", error_msg);
+            progress_emitter.emit_progress(&error_msg);
+            return false;
+        }
+    };
+
+    // 检查响应状态码
+    if !response.status().is_success() {
+        let error_msg = format!("authConfig.errors.httpError: {}", response.status());
+        error!("{}", error_msg);
+        progress_emitter.emit_progress(&error_msg);
+        return false;
+    }
+
+    // 获取响应内容
     let response_text = match response.text().await {
         Ok(text) => text,
         Err(e) => {
-            let error_msg = format!("authConfig.errors.serverError - {}", e);
+            let error_msg = format!("authConfig.errors.serverError: {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
-    info!("API Response: {}", response_text);
 
-    // 解析JSON
+    // 解析 JSON 响应
     let api_response: ApiResponse = match serde_json::from_str(&response_text) {
         Ok(data) => data,
         Err(e) => {
-            let error_msg = format!("authConfig.errors.parseError - {}", e);
+            let error_msg = format!("authConfig.errors.parseError: {}", e);
             error!("{}", error_msg);
             progress_emitter.emit_progress(&error_msg);
             return false;
         }
     };
 
-    if !api_response.success {
-        let error_msg = if api_response.message.contains("No accounts available") {
-            "authConfig.errors.noAccounts".to_string()
-        } else {
-            format!("authConfig.errors.apiError: {}", api_response.message)
-        };
-        error!("{}", error_msg);
-        progress_emitter.emit_progress(&error_msg);
+    // 验证 API 响应
+    if let Err(e) = api_response.validate() {
+        error!("API response validation failed: {}", e);
+        progress_emitter.emit_progress(&e);
         return false;
     }
 

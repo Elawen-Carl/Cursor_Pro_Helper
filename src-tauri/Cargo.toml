@@ -35,6 +35,7 @@ rand = "0.8"
 uuid = { version = "1.4", features = ["v4"] }
 dirs = "5.0.1"
 rusqlite = { version = "0.29.0", features = ["bundled"] }
+regex = "1.5"
 
 # Windows特定依赖
 [target.'cfg(windows)'.dependencies]

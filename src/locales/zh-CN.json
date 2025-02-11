@@ -45,7 +45,13 @@
         "backupFailed": "备份失败",
         "restoreSuccess": "还原成功",
         "restoreFailed": "还原失败",
-        "getIdsFailed": "获取ID信息失败"
+        "getIdsFailed": "获取ID信息失败",
+        "resetId045": "重置ID (0.45)",
+        "reset045Success": "重置ID成功 (0.45版本)",
+        "reset045Failed": "重置ID失败 (0.45版本)",
+        "mainJsPath": "Main.js 文件路径",
+        "getMainJsPathFailed": "获取 Main.js 路径失败",
+        "getMainJsIdsFailed": "获取 Main.js 中的 ID 失败"
     },
     "authConfig": {
         "title": "认证配置",
@@ -63,7 +69,15 @@
             "noAccounts": "暂无可用账号：API中没有可用的账号，请稍后再试或联系管理员添加账号",
             "updateFailed": "更新认证信息失败：无法写入认证数据，请检查程序权限",
             "deleteAccountFailed": "删除旧账号失败（不影响使用），但认证信息已更新成功",
-            "apiError": "API返回失败"
+            "apiError": "API返回失败",
+            "missingEmail": "API返回的数据缺少邮箱字段",
+            "missingToken": "API返回的数据缺少Token字段",
+            "missingUser": "API返回的数据缺少用户字段",
+            "deleteFailed": "删除账号失败",
+            "deleteNetworkError": "删除账号时网络错误",
+            "httpError": "HTTP请求失败",
+            "loadConfigFailed": "加载API配置失败",
+            "createConfigManagerFailed": "创建API配置管理器失败"
         },
         "progress": {
             "start": "开始重置认证信息...",

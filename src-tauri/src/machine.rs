@@ -249,17 +249,17 @@ impl MachineService {
     /// 备份配置
     pub async fn backup_config(&self) -> Result<()> {
         info!("开始备份配置文件");
-
+        self.emit_progress("开始备份配置文件...");
         // 确保备份文件的父目录存在
         if let Some(parent) = self.backup_path.parent() {
             fs::create_dir_all(parent)
                 .await
                 .context(format!("创建备份目录失败: {:?}", parent))?;
         }
-
+        self.emit_progress("备份目录创建成功");
         // 删除旧的备份文件（如果存在）
         self.remove_file_if_exists(&self.backup_path).await?;
-
+        self.emit_progress("旧的备份文件删除成功");
         // 执行备份
         fs::copy(&self.config_path, &self.backup_path)
             .await
@@ -267,10 +267,10 @@ impl MachineService {
                 "备份配置文件失败: 从 {:?} 复制到 {:?}",
                 self.config_path, self.backup_path
             ))?;
-
+        self.emit_progress("配置文件备份成功");
         // 设置备份文件为只读
         self.set_file_permissions(&self.backup_path, true).await?;
-
+        self.emit_progress("备份文件设置为只读成功");
         info!("配置文件备份完成");
         Ok(())
     }
@@ -278,15 +278,19 @@ impl MachineService {
     /// 还原配置
     pub async fn restore_config(&self) -> Result<()> {
         info!("开始还原配置文件");
-
+        self.emit_progress("开始还原配置文件...");
         if !self.backup_path.exists() {
             warn!("备份文件不存在，无法还原");
+            self.emit_progress("备份文件不存在，无法还原");
             return Err(anyhow::anyhow!("备份文件不存在"));
         }
 
+        self.emit_progress("正在删除当前配置文件...");
         // 删除当前配置文件
         self.remove_file_if_exists(&self.config_path).await?;
+        self.emit_progress("当前配置文件删除成功");
 
+        self.emit_progress("正在复制备份文件到配置文件...");
         // 复制备份文件到配置文件
         fs::copy(&self.backup_path, &self.config_path)
             .await
@@ -294,7 +298,7 @@ impl MachineService {
                 "还原配置文件失败: 从 {:?} 复制到 {:?}",
                 self.backup_path, self.config_path
             ))?;
-
+        self.emit_progress("配置文件还原完成");
         info!("配置文件还原完成");
         Ok(())
     }
@@ -374,6 +378,18 @@ impl MachineService {
             error!("文件权限验证失败：文件不是只读状态");
             return Err(anyhow::anyhow!("文件权限验证失败：无法设置为只读状态"));
         }
+
+        // 9. 更新 main.js 中的 ID
+        self.emit_progress("正在更新 main.js 中的 ID...");
+        let mut patcher = crate::patcher::Patcher::new(None).map_err(|e| {
+            error!("创建 Patcher 失败: {}", e);
+            anyhow::anyhow!("创建 Patcher 失败: {}", e)
+        })?;
+
+        patcher.patch(None, None, None, None).map_err(|e| {
+            error!("应用补丁失败: {}", e);
+            anyhow::anyhow!("创建 Patcher 失败: {}", e)
+        })?;
 
         self.emit_progress("机器ID更新完成！");
         info!("更新机器 ID 完成");

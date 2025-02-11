@@ -25,7 +25,15 @@
             "noAccounts": "No accounts available: Please try again later or contact administrator to add accounts",
             "updateFailed": "Failed to update auth info: Unable to write auth data, please check program permissions",
             "deleteAccountFailed": "Failed to delete old account (no impact on usage), but auth info updated successfully",
-            "apiError": "API returned error"
+            "apiError": "API returned error",
+            "missingEmail": "API response missing email field",
+            "missingToken": "API response missing token field",
+            "missingUser": "API response missing user field",
+            "deleteFailed": "Failed to delete account",
+            "deleteNetworkError": "Network error while deleting account",
+            "httpError": "HTTP request failed",
+            "loadConfigFailed": "Failed to load API configuration",
+            "createConfigManagerFailed": "Failed to create API configuration manager"
         },
         "progress": {
             "start": "Starting auth reset process...",
@@ -72,6 +80,12 @@
         "backupFailed": "Backup failed",
         "restoreSuccess": "Restore successful",
         "restoreFailed": "Restore failed",
-        "getIdsFailed": "Failed to get ID information"
+        "getIdsFailed": "Failed to get ID information",
+        "resetId045": "Reset ID (0.45)",
+        "reset045Success": "Reset ID successful (0.45 version)",
+        "reset045Failed": "Reset ID failed (0.45 version)",
+        "mainJsPath": "Main.js File Path",
+        "getMainJsPathFailed": "Failed to get Main.js path",
+        "getMainJsIdsFailed": "Failed to get IDs from Main.js"
     }
 }

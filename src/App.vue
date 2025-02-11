@@ -38,7 +38,7 @@ defineOptions({
     name: 'App'
 })
 
-const isDark = ref<boolean>(false)
+const isDark = ref<boolean>(true)
 const currentTheme = computed<GlobalTheme | null>(() => isDark.value ? darkTheme : null)
 
 const toggleTheme = () => {
