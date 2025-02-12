@@ -31,45 +31,6 @@ impl Patcher {
         })
     }
 
-    /// 设置文件的权限
-    async fn set_file_permissions(file_path: &PathBuf, readonly: bool) -> Result<()> {
-        let mut perms = tokio::fs::metadata(file_path).await?.permissions();
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if readonly {
-                perms.set_mode(0o444); // r--r--r--
-            } else {
-                perms.set_mode(0o644); // rw-r--r--
-            }
-        }
-
-        #[cfg(windows)]
-        {
-            perms.set_readonly(readonly);
-        }
-
-        tokio::fs::set_permissions(file_path, perms)
-            .await
-            .context(format!("设置文件权限失败: {:?}", file_path))?;
-
-        Ok(())
-    }
-
-    /// 删除文件，如果文件存在且为只读，先解除只读属性
-    async fn remove_file_if_exists(file_path: &PathBuf) -> Result<()> {
-        if file_path.exists() {
-            // 先解除只读属性
-            Self::set_file_permissions(file_path, false).await?;
-            // 然后删除文件
-            tokio::fs::remove_file(file_path)
-                .await
-                .context(format!("删除文件失败: {:?}", file_path))?;
-        }
-        Ok(())
-    }
-
     /// 备份 main.js 文件
     pub async fn backup(&self) -> Result<()> {
         info!("开始备份 main.js 文件");
@@ -83,7 +44,7 @@ impl Patcher {
         }
 
         // 删除旧的备份文件（如果存在）
-        Self::remove_file_if_exists(&backup_path).await?;
+        utils::remove_file_if_exists(&backup_path).await?;
 
         // 执行备份
         tokio::fs::copy(&self.js_path, &backup_path)
@@ -94,7 +55,7 @@ impl Patcher {
             ))?;
 
         // 设置备份文件为只读
-        Self::set_file_permissions(&backup_path, true).await?;
+        utils::set_file_permissions(&backup_path, true).await?;
 
         info!("main.js 备份完成");
         Ok(())
@@ -112,7 +73,7 @@ impl Patcher {
         }
 
         // 删除当前文件
-        Self::remove_file_if_exists(&self.js_path).await?;
+        utils::remove_file_if_exists(&self.js_path).await?;
 
         // 执行还原
         tokio::fs::copy(&backup_path, &self.js_path)
@@ -172,9 +133,9 @@ impl Patcher {
         Err(anyhow::anyhow!("Could not find default main.js path"))
     }
 
-    pub fn generate_mac_address() -> String {
+    fn generate_mac() -> String {
         let mut rng = rand::thread_rng();
-        let invalid_macs = vec![
+        let invalid_macs = [
             "00:00:00:00:00:00",
             "ff:ff:ff:ff:ff:ff",
             "ac:de:48:00:11:22",
@@ -192,7 +153,7 @@ impl Patcher {
         }
     }
 
-    pub fn patch(
+    pub async fn patch(
         &mut self,
         machine_id: Option<String>,
         mac_addr: Option<String>,
@@ -205,17 +166,18 @@ impl Patcher {
             fs::copy(&self.js_path, &backup_path).context("备份 main.js 失败")?;
         }
 
-        // 解除文件的只读属性
-        let mut perms = fs::metadata(&self.js_path)
-            .context("获取文件权限失败")?
-            .permissions();
-        perms.set_readonly(false);
-        fs::set_permissions(&self.js_path, perms).context("解除文件只读属性失败")?;
+        // 设置文件为可写
+        utils::set_file_permissions(&self.js_path, false).await?;
 
         let mut data = self.data.clone();
 
+        // 生成或使用提供的 ID
+        let machine_id = machine_id.unwrap_or_else(utils::generate_uuid);
+        let mac = mac_addr.unwrap_or_else(Self::generate_mac);
+        let sqm = sqm_id.unwrap_or_default();
+        let dev_id = dev_device_id.unwrap_or_else(utils::generate_uuid);
+
         // Patch machine ID
-        let machine_id = machine_id.unwrap_or_else(|| utils::generate_uuid());
         info!("Patching machine ID: {}", machine_id);
         data = self.replace_in_data(
             &data,
@@ -225,7 +187,6 @@ impl Patcher {
         )?;
 
         // Patch MAC address
-        let mac = mac_addr.unwrap_or_else(Self::generate_mac_address);
         info!("Patching MAC address: {}", mac);
         data = self.replace_in_data(
             &data,
@@ -235,7 +196,6 @@ impl Patcher {
         )?;
 
         // Patch SQM ID
-        let sqm = sqm_id.unwrap_or_else(String::new);
         info!("Patching SQM ID: {}", sqm);
         data = self.replace_in_data(
             &data,
@@ -245,7 +205,6 @@ impl Patcher {
         )?;
 
         // Patch device ID
-        let dev_id = dev_device_id.unwrap_or_else(|| utils::generate_uuid());
         info!("Patching device ID: {}", dev_id);
         data = self.replace_in_data(
             &data,
@@ -259,6 +218,9 @@ impl Patcher {
 
         // 更新内部数据
         self.data = data;
+
+        // 恢复文件为只读
+        utils::set_file_permissions(&self.js_path, true).await?;
 
         Ok(())
     }

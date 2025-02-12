@@ -16,7 +16,7 @@
     },
     "identifier": "com.cursorprohelper.app",
     "productName": "Cursor Pro Helper",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "app": {
         "security": {
             "csp": null
@@ -58,6 +58,15 @@
             },
             "nsis": {
                 "template": null
+            }
+        },
+        "macOS": {
+            "frameworks": []
+        },
+        "linux": {
+            "appimage": {
+                "bundleMediaFramework": true,
+                "files": {}
             }
         }
     }

@@ -47,7 +47,6 @@ const toggleTheme = () => {
     document.body.classList.toggle('dark', isDark.value)
 }
 </script>
-
 <style>
 /* 重置默认样式 */
 * {

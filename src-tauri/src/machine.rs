@@ -166,45 +166,6 @@ impl MachineService {
         Ok(())
     }
 
-    /// 设置文件的权限
-    async fn set_file_permissions(&self, file_path: &PathBuf, readonly: bool) -> Result<()> {
-        let mut perms = fs::metadata(file_path).await?.permissions();
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if readonly {
-                perms.set_mode(0o444); // r--r--r--
-            } else {
-                perms.set_mode(0o644); // rw-r--r--
-            }
-        }
-
-        #[cfg(windows)]
-        {
-            perms.set_readonly(readonly);
-        }
-
-        fs::set_permissions(file_path, perms)
-            .await
-            .context(format!("设置文件权限失败: {:?}", file_path))?;
-
-        Ok(())
-    }
-
-    /// 删除文件，如果文件存在且为只读，先解除只读属性
-    async fn remove_file_if_exists(&self, file_path: &PathBuf) -> Result<()> {
-        if file_path.exists() {
-            // 先解除只读属性
-            self.set_file_permissions(file_path, false).await?;
-            // 然后删除文件
-            fs::remove_file(file_path)
-                .await
-                .context(format!("删除文件失败: {:?}", file_path))?;
-        }
-        Ok(())
-    }
-
     /// 获取机器 ID
     pub async fn get_machine_id(&self) -> Result<String> {
         let config = self.read_config().await?;
@@ -258,7 +219,7 @@ impl MachineService {
         }
         self.emit_progress("备份目录创建成功");
         // 删除旧的备份文件（如果存在）
-        self.remove_file_if_exists(&self.backup_path).await?;
+        utils::remove_file_if_exists(&self.backup_path).await?;
         self.emit_progress("旧的备份文件删除成功");
         // 执行备份
         fs::copy(&self.config_path, &self.backup_path)
@@ -269,7 +230,7 @@ impl MachineService {
             ))?;
         self.emit_progress("配置文件备份成功");
         // 设置备份文件为只读
-        self.set_file_permissions(&self.backup_path, true).await?;
+        utils::set_file_permissions(&self.backup_path, true).await?;
         self.emit_progress("备份文件设置为只读成功");
         info!("配置文件备份完成");
         Ok(())
@@ -287,7 +248,7 @@ impl MachineService {
 
         self.emit_progress("正在删除当前配置文件...");
         // 删除当前配置文件
-        self.remove_file_if_exists(&self.config_path).await?;
+        utils::remove_file_if_exists(&self.config_path).await?;
         self.emit_progress("当前配置文件删除成功");
 
         self.emit_progress("正在复制备份文件到配置文件...");
@@ -305,7 +266,7 @@ impl MachineService {
 
     /// 设置配置文件的只读属性
     pub async fn set_readonly(&self, readonly: bool) -> Result<()> {
-        self.set_file_permissions(&self.config_path, readonly).await
+        utils::set_file_permissions(&self.config_path, readonly).await
     }
 
     /// 更新机器 ID
@@ -381,15 +342,21 @@ impl MachineService {
 
         // 9. 更新 main.js 中的 ID
         self.emit_progress("正在更新 main.js 中的 ID...");
+
+        // 先创建 patcher
         let mut patcher = crate::patcher::Patcher::new(None).map_err(|e| {
             error!("创建 Patcher 失败: {}", e);
             anyhow::anyhow!("创建 Patcher 失败: {}", e)
         })?;
 
-        patcher.patch(None, None, None, None).map_err(|e| {
-            error!("应用补丁失败: {}", e);
-            anyhow::anyhow!("创建 Patcher 失败: {}", e)
-        })?;
+        // 执行 patch 操作并等待结果
+        patcher
+            .patch(None, None, None, None)
+            .await
+            .with_context(|| {
+                error!("应用补丁失败");
+                "应用补丁失败"
+            })?;
 
         self.emit_progress("机器ID更新完成！");
         info!("更新机器 ID 完成");
@@ -413,25 +380,22 @@ impl MachineService {
         // 如果上面失败，尝试从卸载信息中获取
         let uninstall_key = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
         if let Ok(uninstall) = hklm.open_subkey(uninstall_key) {
-            // 遍历所有卸载项
-            for key_result in uninstall.enum_keys() {
-                if let Ok(key_name) = key_result {
-                    if let Ok(app_key) = uninstall.open_subkey(key_name) {
-                        // 检查DisplayName是否包含"Cursor"
-                        if let Ok(display_name) = app_key.get_value::<String, _>("DisplayName") {
-                            if display_name.contains("Cursor") {
-                                // 获取安装路径
-                                if let Ok(install_location) =
-                                    app_key.get_value::<String, _>("InstallLocation")
-                                {
-                                    return Some(format!(
-                                        "{}\\Cursor.exe",
-                                        install_location.trim_end_matches('\\')
-                                    ));
-                                }
-                            }
-                        }
-                    }
+            // 使用 flatten() 简化遍历逻辑
+            for key_name in uninstall.enum_keys().flatten() {
+                // 使用 and_then 链式处理结果
+                let cursor_path = uninstall.open_subkey(&key_name).ok().and_then(|app_key| {
+                    app_key
+                        .get_value::<String, _>("DisplayName")
+                        .ok()
+                        .filter(|name| name.contains("Cursor"))
+                        .and_then(|_| app_key.get_value::<String, _>("InstallLocation").ok())
+                        .map(|install_location| {
+                            format!("{}\\Cursor.exe", install_location.trim_end_matches('\\'))
+                        })
+                });
+
+                if let Some(path) = cursor_path {
+                    return Some(path);
                 }
             }
         }

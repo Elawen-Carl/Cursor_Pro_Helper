@@ -1,7 +1,10 @@
 //! 工具函数模块
 
+use anyhow::{Context, Result};
 use rand::{thread_rng, RngCore};
 use std::fmt::Write;
+use std::path::PathBuf;
+use tokio::fs;
 use uuid::Uuid;
 
 /// 生成64位十六进制字符串
@@ -51,4 +54,43 @@ pub fn generate_default_machine_config() -> serde_json::Value {
         "telemetry.devDeviceId": dev_device_id,
         "telemetry.sqmId": sqm_id
     })
+}
+
+/// 设置文件的权限
+pub async fn set_file_permissions(file_path: &PathBuf, readonly: bool) -> Result<()> {
+    let mut perms = fs::metadata(file_path).await?.permissions();
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if readonly {
+            perms.set_mode(0o444); // r--r--r--
+        } else {
+            perms.set_mode(0o644); // rw-r--r--
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        perms.set_readonly(readonly);
+    }
+
+    fs::set_permissions(file_path, perms)
+        .await
+        .context(format!("设置文件权限失败: {:?}", file_path))?;
+
+    Ok(())
+}
+
+/// 删除文件，如果文件存在且为只读，先解除只读属性
+pub async fn remove_file_if_exists(file_path: &PathBuf) -> Result<()> {
+    if file_path.exists() {
+        // 先解除只读属性
+        set_file_permissions(file_path, false).await?;
+        // 然后删除文件
+        fs::remove_file(file_path)
+            .await
+            .context(format!("删除文件失败: {:?}", file_path))?;
+    }
+    Ok(())
 }
